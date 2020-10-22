@@ -1,10 +1,10 @@
-<a href="http://opendp.io"><img src="images/logos/sv2.png" align="left" height="120" vspace="8" hspace="18"></a>
+<a href="http://opendp.io"><img src="images/logos/sv2.png" align="left" height="140" vspace="8" hspace="18"></a>
 
-##
+
 
 ## *Sotto Voce:* Federated Machine Learning for Speech Recognition with Two-sided Privacy 
 
-
+<br>
 
 ##  Overview
 
