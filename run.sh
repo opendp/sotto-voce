@@ -6,7 +6,7 @@
 
 set -e -o pipefail
 
-stage=8
+stage=0
 ngpus=1 # num GPUs for multiple GPUs training within a single node; should match those in $free_gpu
 free_gpu="0" # comma-separated available GPU ids, eg., "0" or "0,1"; automatically assigned if on CLSP grid
 
@@ -58,8 +58,8 @@ fi
 if [ ${stage} -le 0 ]; then
   echo "Stage 0: Data Downloading"
 #   for part in dev-clean test-clean dev-other test-other train-clean-100 train-clean-360 train-other-500; do
-  for part in train-clean-100; do
-    local/download_and_untar.sh $data $data_url $part
+  for part in dev-clean; do
+    $KALDI_ROOT/egs/librispeech/s5/local/download_and_untar.sh $data $data_url $part
   done
 fi
 
@@ -68,7 +68,7 @@ if [ ${stage} -le 1 ]; then
 #   for part in dev-clean test-clean dev-other test-other train-clean-100 train-clean-360 train-other-500; do
   for part in dev-clean train-clean-100; do
     # use underscore-separated names in data directories.
-    local/data_prep.sh $data/LibriSpeech/$part $data/$(echo $part | sed s/-/_/g)
+    $KALDI_ROOT/egs/librispeech/s5/local/data_prep.sh $data/LibriSpeech/$part $data/$(echo $part | sed s/-/_/g)
   done
 fi
 
@@ -80,14 +80,18 @@ if [ ${stage} -le 2 ]; then
   # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
 #   for dataset in dev_clean test_clean dev_other test_other train_clean_100 train_clean_360 train_other_500; do
   for dataset in dev_clean train_100; do
-    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
+    $KALDI_ROOT/egs/librispeech/s5/steps/make_fbank_pitch.sh --cmd "$train_cmd" \
+      --nj 32 \
+      --write_utt2num_frames true \
+      --fbank-config $KALDI_ROOT/egs/wsj/s5/conf/fbank.conf \
+      --pitch-config $KALDI_ROOT/egs/librispeech/s5/conf/online_pitch.conf \
       $data/$dataset exp/make_fbank/$dataset ${fbankdir}
-    utils/fix_data_dir.sh $data/$dataset
+    $KALDI_ROOT/egs/librispeech/s5/utils/fix_data_dir.sh $data/$dataset
   done
 
 #   utils/combine_data.sh --extra-files utt2num_frames data/${train_set} data/train_clean_100 data/train_clean_360 data/train_other_500
-  utils/combine_data.sh --extra-files utt2num_frames $data/${train_set} $data/train_100 $data/train
-  utils/combine_data.sh --extra-files utt2num_frames $data/${valid_set} $data/dev_clean $data/dev_other
+  $KALDI_ROOT/egs/librispeech/s5/utils/combine_data.sh --extra-files utt2num_frames $data/${train_set} $data/train_100 $data/train
+  $KALDI_ROOT/egs/librispeech/s5/utils/combine_data.sh --extra-files utt2num_frames $data/${valid_set} $data/dev_clean $data/dev_other
 
   # compute global CMVN
   compute-cmvn-stats scp:$data/${train_set}/feats.scp $data/${train_set}/cmvn.ark
@@ -264,7 +268,7 @@ if [ ${stage} -le 8 ]; then
       opts="$opts --max-epoch 30 --lr-scheduler reduce_lr_on_plateau_v2 --lr-shrink 0.5 --start-reduce-lr-epoch 10"
     fi
   fi
-  CUDA_VISIBLE_DEVICES=$free_gpu speech_train.py data-100 --task speech_recognition_espresso --seed 1 \
+  CUDA_VISIBLE_DEVICES=$free_gpu /home/ecowan/espresso/espresso/speech_train.py data-100 --task speech_recognition_espresso --seed 1 \
     --log-interval $((8000/ngpus/update_freq)) --log-format simple --print-training-sample-interval $((4000/ngpus/update_freq)) \
     --num-workers 0 --data-buffer-size 0 --max-tokens 26000 --batch-size 24 --curriculum 1 --empty-cache-freq 50 \
     --valid-subset $valid_subset --batch-size-valid 48 --ddp-backend no_c10d --update-freq $update_freq \
