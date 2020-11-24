@@ -11,7 +11,7 @@
 The steps to install espresso (once you're done with the prerequisites) are as follows:
 
 conda create -n espresso-v4 python=3.7
-conda activate espresso.v4
+conda activate espresso-v4
 conda install pytorch=1.4.0 cudatoolkit=10.0 -c pytorch
 conda install gcc_linux-64 gxx_linux-64
 cd <path-where-you-want-to-install-espresso>
@@ -24,7 +24,7 @@ pip install sentencepiece
 cd espresso/tools
 make KALDI=<path to kaldi root>
 pip install pychain
-cd examples/asr_librispeech/
+cd ./../examples/asr_librispeech
 rm steps
 ln -s <path-to-kaldi>/egs/wsj/s5/steps
 rm utils
@@ -37,4 +37,5 @@ ln -s <path-to-kaldi>/egs/librispeech/s5/local/download_and_untar.sh
 
 cd ../
 mkdir data-librispeech
+mkdir data-100
 Change cmd.sh to use "run.pl" instead of "queue.pl"`
