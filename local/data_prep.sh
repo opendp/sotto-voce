@@ -1,1 +1,1 @@
-/nfs/mercury-13/u20/cli/src/espresso/espresso/tools/kaldi-v2/kaldi/egs/librispeech/s5/local/data_prep.sh
+/Users/ethancowan/kaldi/egs/librispeech/s5/local/data_prep.sh

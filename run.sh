@@ -6,14 +6,14 @@
 
 set -e -o pipefail
 
-stage=0
+stage=1
 ngpus=1 # num GPUs for multiple GPUs training within a single node; should match those in $free_gpu
 free_gpu="0" # comma-separated available GPU ids, eg., "0" or "0,1"; automatically assigned if on CLSP grid
 
 # E2E model related
 affix=
 # train_set=train_960
-train_set=train_100
+train_set=train_clean_100
 # valid_set=dev
 valid_set=dev_clean
 test_set="test_clean test_other dev_clean dev_other"
@@ -32,10 +32,7 @@ sentencepiece_type=unigram
 
 # data related
 dumpdir=data-100/dump   # directory to dump full features
-data=data-100 # path to where you want to put the downloaded data; need to be specified if not on CLSP grid
-if [[ $(hostname -f) == *.clsp.jhu.edu ]]; then
-  data=/export/a15/vpanayotov/data
-fi
+data=./data-100 # path to where you want to put the downloaded data; need to be specified if not on CLSP grid
 data_url=www.openslr.org/resources/12
 kaldi_scoring=true
 
@@ -58,7 +55,7 @@ fi
 if [ ${stage} -le 0 ]; then
   echo "Stage 0: Data Downloading"
 #   for part in dev-clean test-clean dev-other test-other train-clean-100 train-clean-360 train-other-500; do
-  for part in dev-clean; do
+  for part in dev-clean train-clean-100; do
     $KALDI_ROOT/egs/librispeech/s5/local/download_and_untar.sh $data $data_url $part
   done
 fi
@@ -79,34 +76,22 @@ if [ ${stage} -le 2 ]; then
   fbankdir=fbank
   # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
 #   for dataset in dev_clean test_clean dev_other test_other train_clean_100 train_clean_360 train_other_500; do
-  for dataset in dev_clean train_100; do
+  for dataset in dev_clean; do
     $KALDI_ROOT/egs/librispeech/s5/steps/make_fbank_pitch.sh --cmd "$train_cmd" \
       --nj 32 \
       --write_utt2num_frames true \
-      --fbank-config $KALDI_ROOT/egs/wsj/s5/conf/fbank.conf \
-      --pitch-config $KALDI_ROOT/egs/librispeech/s5/conf/online_pitch.conf \
       $data/$dataset exp/make_fbank/$dataset ${fbankdir}
     $KALDI_ROOT/egs/librispeech/s5/utils/fix_data_dir.sh $data/$dataset
   done
 
 #   utils/combine_data.sh --extra-files utt2num_frames data/${train_set} data/train_clean_100 data/train_clean_360 data/train_other_500
-  $KALDI_ROOT/egs/librispeech/s5/utils/combine_data.sh --extra-files utt2num_frames $data/${train_set} $data/train_100 $data/train
-  $KALDI_ROOT/egs/librispeech/s5/utils/combine_data.sh --extra-files utt2num_frames $data/${valid_set} $data/dev_clean $data/dev_other
+  # $KALDI_ROOT/egs/librispeech/s5/utils/combine_data.sh --extra-files utt2num_frames $data/${train_set} $data/train_100 $data/train
+  # $KALDI_ROOT/egs/librispeech/s5/utils/combine_data.sh --extra-files utt2num_frames $data/${valid_set} # $data/dev_clean  # $data/dev_other
 
   # compute global CMVN
   compute-cmvn-stats scp:$data/${train_set}/feats.scp $data/${train_set}/cmvn.ark
 
   # dump features for training
-  if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${train_feat_dir}/storage ]; then
-    utils/create_split_dir.pl \
-      /export/b1{4,5,6,7}/${USER}/fairseq-data/egs/asr_librispeech/dump/${train_set}/delta${do_delta}/storage \
-      ${train_feat_dir}/storage
-  fi
-  if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${valid_feat_dir}/storage ]; then
-    utils/create_split_dir.pl \
-      /export/b1{4,5,6,7}/${USER}/fairseq-data/egs/asr_librispeech/dump/${valid_set}/delta${do_delta}/storage \
-      ${valid_feat_dir}/storage
-  fi
   dump.sh --cmd "$train_cmd" --nj 80 --do_delta $do_delta \
     $data/${train_set}/feats.scp $data/${train_set}/cmvn.ark exp/dump_feats/train ${train_feat_dir}
   dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \

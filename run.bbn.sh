@@ -6,7 +6,7 @@
 
 set -e -o pipefail
 
-stage=4
+stage=0
 
 ngpus=1 # num GPUs for multiple GPUs training within a single node; should match those in $free_gpu
 free_gpu="0" # comma-separated available GPU ids, eg., "0" or "0,1"; automatically assigned if on CLSP grid
