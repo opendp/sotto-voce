@@ -6,8 +6,7 @@
 
 set -e -o pipefail
 
-# stage=0
-stage=0
+stage=4
 
 ngpus=1 # num GPUs for multiple GPUs training within a single node; should match those in $free_gpu
 free_gpu="0" # comma-separated available GPU ids, eg., "0" or "0,1"; automatically assigned if on CLSP grid
@@ -31,9 +30,12 @@ sentencepiece_type=unigram
 
 # data related
 # dumpdir=data-100/dump   # directory to dump full features
-dumpdir="/nfs/mercury-13/u123/dbagchi/espresso/examples/asr_librispeech/data-100/dump"   # directory to dump full features
-download_dir="/nfs/mercury-13/u123/dbagchi/espresso/examples/asr_librispeech/data-100" # path to where you want to put the downloaded data; need to be specified if not on CLSP grid
-data_dir="/nfs/mercury-13/u123/dbagchi/espresso/examples/asr_librispeech/data-100" # path to where you want to put the downloaded data; need to be specified if not on CLSP grid
+kaldi="/data/kaldi"
+home="/data"
+espresso=${home}/espresso.v4/espresso
+dumpdir=${home}"/espresso.v4/espresso/examples/asr_librispeech/data-100/dump"   # directory to dump full features
+download_dir=${home}"/espresso.v4/espresso/examples/asr_librispeech/data-100" # path to where you want to put the downloaded data; need to be specified if not on CLSP grid
+data_dir=${home}"/espresso.v4/espresso/examples/asr_librispeech/data-100" # path to where you want to put the downloaded data; need to be specified if not on CLSP grid
 if [[ $(hostname -f) == *.clsp.jhu.edu ]]; then
   data=/export/a15/vpanayotov/data
 fi
@@ -49,7 +51,7 @@ apply_specaug=true
 . ./cmd.sh
 . ./utils/parse_options.sh
 
-exp_dir="/nfs/mercury-13/u123/dbagchi/espresso/examples/asr_librispeech/exp-100"
+exp_dir=${home}"/espresso.v4/espresso/examples/asr_librispeech/exp-100"
 lmdir=$exp_dir/lm_lstm${lm_affix:+_${lm_affix}}
 dir=$exp_dir/lstm${affix:+_$affix}
 
@@ -120,7 +122,7 @@ if [ ${stage} -le 3 ]; then
   mkdir -p $data_dir/lang
   cut -f 2- -d" " $data_dir/${train_set}/text > $data_dir/lang/input
   echo "$0: training sentencepiece model..."
-  python3 ../../scripts/spm_train.py --bos_id=-1 --pad_id=0 --eos_id=1 --unk_id=2 --input=$data_dir/lang/input \
+  python3 ${espresso}/scripts/spm_train.py --bos_id=-1 --pad_id=0 --eos_id=1 --unk_id=2 --input=$data_dir/lang/input \
     --vocab_size=$((sentencepiece_vocabsize+3)) --character_coverage=1.0 \
     --model_type=$sentencepiece_type --model_prefix=$sentencepiece_model \
     --input_sentence_size=10000000
@@ -129,7 +131,7 @@ if [ ${stage} -le 3 ]; then
     text=$data_dir/$dataset/text
     token_text=$data_dir/$dataset/token_text
     cut -f 2- -d" " $text | \
-      python3 ../../scripts/spm_encode.py --model=${sentencepiece_model}.model --output_format=piece | \
+      python3 ${espresso}/scripts/spm_encode.py --model=${sentencepiece_model}.model --output_format=piece | \
       paste -d" " <(cut -f 1 -d" " $text) - > $token_text
     if [ "$dataset" == "$train_set" ]; then
       cut -f 2- -d" " $token_text | tr ' ' '\n' | sort | uniq -c | \
@@ -145,13 +147,17 @@ if [ ${stage} -le 3 ]; then
     token_text=$data_dir/$dataset/token_text
     cut -f 2- -d" " $token_text > $lmdatadir/$dataset.tokens
   done
-  if [ ! -e $lmdatadir/librispeech-lm-norm.txt.gz ]; then
+  if [ ! -e $lmdatadir/librispeech-lm-norm.txt.gz.Z ]; then
     wget http://www.openslr.org/resources/11/librispeech-lm-norm.txt.gz -P $lmdatadir
   fi
   echo "$0: preparing extra corpus for subword LM training..."
-  zcat $lmdatadir/librispeech-lm-norm.txt.gz | \
-    python3 ../../scripts/spm_encode.py --model=${sentencepiece_model}.model --output_format=piece | \
-    cat $lmdatadir/$train_set.tokens - > $lmdatadir/train.tokens
+  # zcat fails on some platforms if the archive doesn't end in ".Z"
+  if [ ! -e $lmdatadir/librispeech-lm-norm.txt.gz.Z ]; then
+      mv $lmdatadir/librispeech-lm-norm.txt.gz $lmdatadir/librispeech-lm-norm.txt.gz.Z
+  fi
+  zcat $lmdatadir/librispeech-lm-norm.txt.gz.Z | \
+  python3 ${espresso}/scripts/spm_encode.py --model=${sentencepiece_model}.model --output_format=piece | \
+  cat $lmdatadir/$train_set.tokens - > $lmdatadir/train.tokens
  fi
 fi
 
@@ -163,7 +169,7 @@ if $lm_shallow_fusion; then
   for dataset in $test_set; do test_paths="$test_paths $lmdatadir/$dataset.tokens"; done
   test_paths=$(echo $test_paths | awk '{$1=$1;print}' | tr ' ' ',')
   ${decode_cmd} $lmdatadir/log/preprocess.log \
-    python3 ../../fairseq_cli/preprocess.py --task language_modeling_for_asr \
+    python3 ${espresso}/fairseq_cli/preprocess.py --task language_modeling_for_asr \
       --workers 50 --srcdict $lmdict --only-source \
       --trainpref $lmdatadir/train.tokens \
       --validpref $lmdatadir/$valid_set.tokens \
@@ -188,13 +194,13 @@ if $lm_shallow_fusion; then
     mkdir -p $lmdir/log
     log_file=$lmdir/log/train.log
     [ -f $lmdir/checkpoint_last.pt ] && log_file="-a $log_file"
-    CUDA_VISIBLE_DEVICES=$free_gpu python3 ../../fairseq_cli/train.py $lmdatadir --seed 1 \
+    CUDA_VISIBLE_DEVICES=$free_gpu python3 ${espresso}/fairseq_cli/train.py $lmdatadir --seed 1 \
       --task language_modeling_for_asr --dict $lmdict \
       --log-interval $((16000/ngpus)) --log-format simple \
       --num-workers 0 --max-tokens 32000 --batch-size 1024 --curriculum 1 \
       --valid-subset $valid_subset --batch-size-valid 1536 \
       --distributed-world-size $ngpus --distributed-port $(if [ $ngpus -gt 1 ]; then echo 100; else echo -1; fi) \
-      --max-epoch 30 --optimizer adam --lr 0.001 --clip-norm 1.0 \
+      --max-epoch 1 --optimizer adam --lr 0.001 --clip-norm 1.0 \
       --lr-scheduler reduce_lr_on_plateau --lr-shrink 0.5 \
       --save-dir $lmdir --restore-file checkpoint_last.pt --save-interval-updates $((16000/ngpus)) \
       --keep-interval-updates 3 --keep-last-epochs 5 --validate-interval 1 \
@@ -212,7 +218,7 @@ if $lm_shallow_fusion; then
     test_set_array=($test_set)
     for i in $(seq 0 $num); do
       log_file=$lmdir/log/evaluation_${test_set_array[$i]}.log
-      python3 ../../fairseq_cli/eval_lm.py $lmdatadir --cpu \
+      python3 ${espresso}/fairseq_cli/eval_lm.py $lmdatadir --cpu \
         --task language_modeling_for_asr --dict $lmdict --gen-subset ${gen_set_array[$i]} \
         --max-tokens 40960 --max-sentences 1536 --sample-break-mode eos \
         --path $lmdir/$lm_checkpoint 2>&1 | tee $log_file

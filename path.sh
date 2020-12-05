@@ -1,5 +1,6 @@
 MAIN_ROOT=/home/ecowan
 export KALDI_ROOT=$MAIN_ROOT/kaldi
+export ESPRESSO_ROOT=$MAIN_ROOT/espresso
 
 # BEGIN from kaldi path.sh
 [ -f $KALDI_ROOT/tools/env.sh ] && . $KALDI_ROOT/tools/env.sh
