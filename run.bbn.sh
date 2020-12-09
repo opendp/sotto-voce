@@ -292,8 +292,8 @@ if [ ${stage} -le 9 ]; then
   fi
   for dataset in $test_set; do
     decode_dir=$dir/decode_$dataset${decode_affix:+_${decode_affix}}
-    CUDA_VISIBLE_DEVICES=$(echo $free_gpu | sed 's/,/ /g' | awk '{print $1}') speech_recognize.py data-100 \
-      --task speech_recognition_espresso --user-dir espresso --max-tokens 15000 --batch-size 24 \
+    CUDA_VISIBLE_DEVICES=$(echo $free_gpu | sed 's/,/ /g' | awk '{print $1}') ${espresso}/espresso/speech_recognize.py data-100 \
+      --task speech_recognition_espresso --user-dir ${espresso}/espresso --max-tokens 15000 --batch-size 24 \
       --num-shards 1 --shard-id 0 --dict $dict --bpe sentencepiece --sentencepiece-model ${sentencepiece_model}.model \
       --gen-subset $dataset --max-source-positions 9999 --max-target-positions 999 \
       --path $path --beam 60 --max-len-a 0.08 --max-len-b 0 --lenpen 1.0 \
