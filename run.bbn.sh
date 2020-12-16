@@ -278,7 +278,6 @@ fi
 
 if [ ${stage} -le 9 ]; then
   echo "Stage 9: Decoding"
-
   opts=""
   path=$dir/$checkpoint
   decode_affix=
