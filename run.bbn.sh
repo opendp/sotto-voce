@@ -15,7 +15,7 @@ free_gpu="0" # comma-separated available GPU ids, eg., "0" or "0,1"; automatical
 affix=
 train_set=train_100
 valid_set=dev
-test_set="test_clean test_other dev_clean dev_other"
+test_set="test_clean test_other dev_clean"  # dev_other" <- this causes a "sed bad file descriptor" error
 checkpoint=checkpoint_best.pt
 
 # LM related
