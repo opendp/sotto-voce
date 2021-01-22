@@ -1,1 +1,1 @@
-/Users/ethancowan/kaldi/egs/librispeech/s5/local/download_and_untar.sh
+/data/espresso.v4/espresso/espresso/tools/kaldi/egs/librispeech/s5/local/download_and_untar.sh

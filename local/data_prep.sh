@@ -1,1 +1,1 @@
-/Users/ethancowan/kaldi/egs/librispeech/s5/local/data_prep.sh
+/data/espresso.v4/espresso/espresso/tools/kaldi/egs/librispeech/s5/local/data_prep.sh

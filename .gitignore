@@ -1,3 +1,10 @@
+*~*
+kaldi/
+fbank/
+scoring_kaldi/
+output.txt*
+conf/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

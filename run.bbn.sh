@@ -6,7 +6,7 @@
 
 set -e -o pipefail
 
-stage=0
+stage=9
 
 ngpus=1 # num GPUs for multiple GPUs training within a single node; should match those in $free_gpu
 free_gpu="0" # comma-separated available GPU ids, eg., "0" or "0,1"; automatically assigned if on CLSP grid
@@ -15,7 +15,7 @@ free_gpu="0" # comma-separated available GPU ids, eg., "0" or "0,1"; automatical
 affix=
 train_set=train_100
 valid_set=dev
-test_set="test_clean test_other dev_clean dev_other"
+test_set="test_clean test_other dev_clean"  # dev_other" <- this causes a "sed bad file descriptor" error
 checkpoint=checkpoint_best.pt
 
 # LM related
@@ -30,8 +30,8 @@ sentencepiece_type=unigram
 
 # data related
 # dumpdir=data-100/dump   # directory to dump full features
-kaldi="/Users/ethancowan/kaldi"
-home="/Users/ethancowan"
+kaldi="/data/kaldi"
+home="/data"
 espresso=${home}/espresso.v4/espresso
 dumpdir=${home}"/espresso.v4/espresso/examples/asr_librispeech/data-100/dump"   # directory to dump full features
 download_dir=${home}"/espresso.v4/espresso/examples/asr_librispeech/data-100" # path to where you want to put the downloaded data; need to be specified if not on CLSP grid
@@ -155,7 +155,7 @@ if [ ${stage} -le 3 ]; then
   if [ ! -e $lmdatadir/librispeech-lm-norm.txt.gz.Z ]; then
       mv $lmdatadir/librispeech-lm-norm.txt.gz $lmdatadir/librispeech-lm-norm.txt.gz.Z
   fi
-  zcat $lmdatadir/librispeech-lm-norm.txt.gz | \
+  zcat $lmdatadir/librispeech-lm-norm.txt.gz.Z | \
   python3 ${espresso}/scripts/spm_encode.py --model=${sentencepiece_model}.model --output_format=piece | \
   cat $lmdatadir/$train_set.tokens - > $lmdatadir/train.tokens
  fi
@@ -200,7 +200,7 @@ if $lm_shallow_fusion; then
       --num-workers 0 --max-tokens 32000 --batch-size 1024 --curriculum 1 \
       --valid-subset $valid_subset --batch-size-valid 1536 \
       --distributed-world-size $ngpus --distributed-port $(if [ $ngpus -gt 1 ]; then echo 100; else echo -1; fi) \
-      --max-epoch 30 --optimizer adam --lr 0.001 --clip-norm 1.0 \
+      --max-epoch 1 --optimizer adam --lr 0.001 --clip-norm 1.0 \
       --lr-scheduler reduce_lr_on_plateau --lr-shrink 0.5 \
       --save-dir $lmdir --restore-file checkpoint_last.pt --save-interval-updates $((16000/ngpus)) \
       --keep-interval-updates 3 --keep-last-epochs 5 --validate-interval 1 \
@@ -254,13 +254,13 @@ if [ ${stage} -le 8 ]; then
   update_freq=$(((2+ngpus-1)/ngpus))
   opts="$opts --arch speech_conv_lstm_librispeech"
   if $apply_specaug; then
-    opts="$opts --max-epoch 95 --lr-scheduler tri_stage --warmup-steps $((2000/ngpus/update_freq)) --hold-steps $((600000/ngpus/update_freq)) --decay-steps $((1040000/ngpus/update_freq))"
+    opts="$opts --max-epoch 1 --lr-scheduler tri_stage --warmup-steps $((2000/ngpus/update_freq)) --hold-steps $((600000/ngpus/update_freq)) --decay-steps $((1040000/ngpus/update_freq))"
     opts="$opts --encoder-rnn-layers 5"
     specaug_config="{'W': 80, 'F': 27, 'T': 100, 'num_freq_masks': 2, 'num_time_masks': 2, 'p': 1.0}"
   else
     opts="$opts --max-epoch 30 --lr-scheduler reduce_lr_on_plateau_v2 --lr-shrink 0.5 --start-reduce-lr-epoch 10"
   fi
-  CUDA_VISIBLE_DEVICES=$free_gpu speech_train.py data-100 --task speech_recognition_espresso --seed 1 \
+  CUDA_VISIBLE_DEVICES=$free_gpu  ${espresso}/espresso/speech_train.py ${data_dir} --task speech_recognition_espresso --seed 1 \
     --log-interval $((8000/ngpus/update_freq)) --log-format simple --print-training-sample-interval $((4000/ngpus/update_freq)) \
     --num-workers 0 --data-buffer-size 0 --max-tokens 26000 --batch-size 24 --curriculum 1 --empty-cache-freq 50 \
     --valid-subset $valid_subset --batch-size-valid 48 --ddp-backend no_c10d --decoder-embed-dim 320 --update-freq $update_freq \
@@ -278,6 +278,7 @@ fi
 
 if [ ${stage} -le 9 ]; then
   echo "Stage 9: Decoding"
+
   opts=""
   path=$dir/$checkpoint
   decode_affix=
@@ -292,19 +293,20 @@ if [ ${stage} -le 9 ]; then
   fi
   for dataset in $test_set; do
     decode_dir=$dir/decode_$dataset${decode_affix:+_${decode_affix}}
-    CUDA_VISIBLE_DEVICES=$(echo $free_gpu | sed 's/,/ /g' | awk '{print $1}') speech_recognize.py data-100 \
-      --task speech_recognition_espresso --user-dir espresso --max-tokens 15000 --batch-size 24 \
+    echo ${espresso}/examples/asr_wsj/local/score_e2e.sh $data_dir/$dataset $decode_dir
+    CUDA_VISIBLE_DEVICES=$(echo $free_gpu | sed 's/,/ /g' | awk '{print $1}') ${espresso}/espresso/speech_recognize.py ${data_dir} \
+      --task speech_recognition_espresso --max-tokens 15000 --batch-size 24 \
       --num-shards 1 --shard-id 0 --dict $dict --bpe sentencepiece --sentencepiece-model ${sentencepiece_model}.model \
       --gen-subset $dataset --max-source-positions 9999 --max-target-positions 999 \
       --path $path --beam 60 --max-len-a 0.08 --max-len-b 0 --lenpen 1.0 \
       --results-path $decode_dir $opts
-
-    echo "log saved in ${decode_dir}/decode.log"
-    if $kaldi_scoring; then
-      echo "verify WER by scoring with Kaldi..."
-      local/score_e2e.sh $data/$dataset $decode_dir
-      cat ${decode_dir}/scoring_kaldi/wer
-    fi
   done
+
+  echo "log saved in ${decode_dir}/decode.log"
+  if $kaldi_scoring; then
+      echo "verify WER by scoring with Kaldi..."
+      ${espresso}/examples/asr_wsj/local/score_e2e.sh $data_dir/$dataset $decode_dir
+      cat ${decode_dir}/scoring_kaldi/wer
+  fi
 fi
 
