@@ -1,6 +1,6 @@
 import argparse
 import torch
-from data_io_utt_eval import *
+from data_io_utt import *
 from kaldiio import WriteHelper
 
 #1272-141231-0002 -c 1 -t PCM_01 -f 0-213360 -o 1272-141231-0002 -spkr 1272
@@ -8,7 +8,6 @@ from kaldiio import WriteHelper
 def recognize(args):
     model = FcNet(args.input_dim, args.fc_nodes, args.output_dim, args.hidden_layers)  # input, hidden, output
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    posterior_fname = open(args.post_fname, "w")
     print(model)
     model.to(device)
 
@@ -19,28 +18,29 @@ def recognize(args):
     model.eval()
     #model.cuda()
 
-    eval_file_details = {'scp_dir':args.eval_scp_path,'scp_file':args.eval_scp_file_name}
+    eval_file_details = {'scp_dir':args.eval_scp_path,'scp_file':args.eval_scp_file_name,'label_scp_file':args.eval_label_scp_file_name}
     eval_dataset = SenoneClassification(eval_file_details)
 
     eval_dataloader = data.DataLoader(eval_dataset, batch_size=1, shuffle=False, num_workers=100)
-
+    tot_acc = 0
+    tot_utt = 0
     with WriteHelper('ark,scp:file.ark,file.scp') as writer:
         with torch.no_grad():
             for i, sample in enumerate(eval_dataloader):
                 print('(%d/%d) decoding' %
                       (i, len(eval_dataloader)), flush=True)
                 x = sample['features'].cuda()
+                y = sample['labels'].cuda()
                 name = sample['name'][0]
                 #spkr = name.split("-")[0]
-                pred = model.recognize(x).data.cpu().numpy()
-                writer(name, pred)
+                pred, pred_tags = model.recognize(x)
+                acc = model.get_acc_utt(pred_tags.cuda(), y)
+                tot_acc += acc
+                tot_utt += 1
+                writer(name, pred.data.cpu().numpy())
 
-                #posterior_fname.write(name + " [\n")
-                #for i in range(pred.shape[0]):
-                #    if i==(pred.shape[0]-1):
-                #        posterior_fname.write("  "+str(pred[i][0])+" "+str(pred[i][1])+" ]\n")
-                #    else:
-                #        posterior_fname.write("  "+str(pred[i][0])+" "+str(pred[i][1])+"\n")
+    acc_perc = float(tot_acc/tot_utt)    
+    print("Average accuracy:" + str(acc_perc))
 
 
 
@@ -51,7 +51,7 @@ if __name__ == "__main__":
     parser.add_argument('--model_path', type=str, required=True,
                         help='Path to model file created by training')
     parser.add_argument('--eval_scp_file_name', type=str, required=True)
-    parser.add_argument('--post_fname', type=str, required=True)
+    parser.add_argument('--eval_label_scp_file_name', type=str, required=True)
     parser.add_argument('--eval_scp_path', type=str, required=True)
 
     # Model params
