@@ -37,6 +37,8 @@ if __name__ == "__main__":
     parser.add_argument('--early_stop', dest='early_stop', default=0, type=int,
                         help='Early stop training when halving lr but still get'
                              'small improvement')
+    parser.add_argument('--step_epsilon', default=None, type=float,
+                        help='Set step_epsilon to enable differentially private learning')
 
     # save and load model
     parser.add_argument('--save_folder', default='exp/temp',

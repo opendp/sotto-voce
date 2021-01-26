@@ -1,12 +1,12 @@
 #!/bin/bash
 
-train_scp_dir="/nfs/mercury-13/u123/dbagchi/ASR_utt"
-train_scp_file="train_full_nodup_tr90/feats.scp"
-train_label_scp_file="train_full_nodup_tr90/phone.ctm2.scp"
+train_scp_dir="/Users/michael/whitenoise/sotto-voce-corpus/senone_labels"
+train_scp_file="/Users/michael/whitenoise/sotto-voce-corpus/libri_inp_data/train_full_nodup_tr90/feats.scp"
+train_label_scp_file="/Users/michael/whitenoise/sotto-voce-corpus/libri_inp_data/train_full_nodup_tr90/phone.ctm2.scp"
 
-cv_scp_dir="/nfs/mercury-13/u123/dbagchi/ASR_utt"
-cv_scp_file="train_full_nodup_cv10/feats.scp"
-cv_label_scp_file="train_full_nodup_cv10/phone.ctm2.scp"
+cv_scp_dir="/Users/michael/whitenoise/sotto-voce-corpus/senone_labels"
+cv_scp_file="/Users/michael/whitenoise/sotto-voce-corpus/libri_inp_data/train_full_nodup_cv10/feats.scp"
+cv_label_scp_file="/Users/michael/whitenoise/sotto-voce-corpus/libri_inp_data/train_full_nodup_cv10/phone.ctm2.scp"
 
 input_dim=13
 output_dim=9096
@@ -27,7 +27,8 @@ mdl_path="final.pth.tar"
 
 pr_fr=1000
 
-/nfs/mercury-13/u123/dbagchi/anaconda3/envs/pytorch_gpu_deblin/bin/python train.py --train_scp_dir $train_scp_dir \
+workon smartnoise
+python train.py --train_scp_dir $train_scp_dir \
  --train_scp_file $train_scp_file \
  --train_label_scp_file $train_label_scp_file \
  --cv_scp_dir $cv_scp_dir \
