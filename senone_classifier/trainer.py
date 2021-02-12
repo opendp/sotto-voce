@@ -2,7 +2,7 @@ import os
 import time
 import torch
 try:
-    from opendp.smartnoise.network import PrivacyAccountant
+    from opendp.smartnoise.network import PrivacyAccountant, ModelCoordinator
 except ImportError as e:
     print("Install smartnoise from the ms-external-sgd branch of this repository: https://github.com/opendifferentialprivacy/smartnoise-core-python")
     raise e
@@ -16,6 +16,7 @@ class Trainer(object):
         self.cv_loader = dataloader['cv_loader']
 
         self.accountant = PrivacyAccountant(model=self.model, step_epsilon=args.step_epsilon) if args.step_epsilon else None
+        self.coordinator = ModelCoordinator(model=self.model, **args.federation) if hasattr(args, 'federation') else None
 
         # Training config
         self.epochs = args.epochs
@@ -55,6 +56,8 @@ class Trainer(object):
 
     def train(self):
         for epoch in range(self.start_epoch, self.epochs):
+            if self.coordinator:
+                self.coordinator.recv()
             print("training...")
             start = time.time()
             tr_avg_loss = self._run_one_epoch(epoch)
@@ -114,6 +117,9 @@ class Trainer(object):
                                                 cv_loss=self.cv_loss),
                            file_path)
                 print("Find better validated model, saving to %s" % file_path)
+
+            if self.coordinator:
+                self.coordinator.send()
 
 
 
