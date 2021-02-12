@@ -8,7 +8,6 @@ rlimit = resource.getrlimit(resource.RLIMIT_NOFILE)
 resource.setrlimit(resource.RLIMIT_NOFILE, (2048, rlimit[1]))
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser()
     # Path params
     parser.add_argument("--base_dir", default=os.getcwd())
@@ -65,11 +64,16 @@ if __name__ == "__main__":
 
     dataloader = {"tr_loader":tr_dataloader, "cv_loader":cv_dataloader}
 
-    model = FcNet(args.input_dim, args.fc_nodes, args.output_dim, args.hidden_layers)  # input, hidden, output
+    model = FcNet(
+        args.input_dim,  # input
+        args.fc_nodes,  # hidden
+        args.output_dim,  # output
+        args.hidden_layers,
+        is_private=args.step_epsilon is not None)
     model.apply(weights_init)
 
     print(model)
-    model.cuda()
+    # model.cuda()
     optimizer = torch.optim.Adam(model.parameters(),
                                 lr=args.learn_rate)
 

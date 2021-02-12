@@ -2,7 +2,7 @@ import os
 import time
 import torch
 try:
-    from opendp.smartnoise.network.optimizer import PrivacyAccountant
+    from opendp.smartnoise.network import PrivacyAccountant
 except ImportError as e:
     print("Install smartnoise from the ms-external-sgd branch of this repository: https://github.com/opendifferentialprivacy/smartnoise-core-python")
     raise e
@@ -127,8 +127,8 @@ class Trainer(object):
         data_loader = self.tr_loader if not cross_valid else self.cv_loader
 
         for i, sample in enumerate(data_loader):
-            x = sample['features'].cuda()
-            y = sample['labels'].cuda()
+            x = sample['features'] # .cuda()
+            y = sample['labels'] # .cuda()
             #print(x.shape)
             loss = self.model(x, y)
             if not cross_valid:

@@ -42,4 +42,5 @@ python train.py --train_scp_dir $train_scp_dir \
  --momentum $mom \
  --epochs $ep \
  --save_folder $save_fld \
- --checkpoint $ckpt  --model_path $mdl_path  --print_freq $pr_fr                                                                
+ --checkpoint $ckpt  --model_path $mdl_path  --print_freq $pr_fr \
+ --step_epsilon 1.0
