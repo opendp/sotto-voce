@@ -135,7 +135,7 @@ class Trainer(object):
                 self.optimizer.zero_grad()
                 loss.backward()
 
-                if self.accountant:
+                if self.accountant:                    
                     self.accountant.privatize_grad()
 
                 self.optimizer.step()

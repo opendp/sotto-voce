@@ -4,6 +4,9 @@ import torch.utils.data as data
 from trainer import *
 import resource
 
+from gradient_transfer import GradientTransfer
+
+
 rlimit = resource.getrlimit(resource.RLIMIT_NOFILE)
 resource.setrlimit(resource.RLIMIT_NOFILE, (2048, rlimit[1]))
 
@@ -53,6 +56,8 @@ if __name__ == "__main__":
     parser.add_argument('--print_freq', default=10, type=int,
                         help='Frequency of printing training information')
 
+    parser.add_argument('--sample-aggregate', action='store_true')
+
     args = parser.parse_args()
 
     tr_file_details = {'scp_dir':args.train_scp_dir,'scp_file':args.train_scp_file_name,'label_scp_file':args.train_label_scp_file}
@@ -72,6 +77,7 @@ if __name__ == "__main__":
     model.cuda()
     optimizer = torch.optim.Adam(model.parameters(),
                                 lr=args.learn_rate)
-
-    trainer = Trainer(dataloader, model, optimizer, args)
+    print(f"RUNNING sample-aggregate? {args.sample_aggregate}")
+    trainer = GradientTransfer(dataloader, model, optimizer, args) \
+        if args.sample_aggregate else Trainer(dataloader, model, optimizer, args)
     trainer.train()

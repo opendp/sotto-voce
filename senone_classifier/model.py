@@ -1,3 +1,5 @@
+from opacus.layers.dp_lstm import DPLSTM
+
 import torch
 import torch.nn.functional as F
 
@@ -13,7 +15,7 @@ class FcNet(torch.nn.Module):
         self.hidden_layers = layers
 
         super(FcNet, self).__init__()
-        self.lstm = torch.nn.LSTM(self.in_size, self.hid_size, self.hidden_layers)
+        self.lstm = DPLSTM(self.in_size, self.hid_size, self.hidden_layers)
         self.linear1 = torch.nn.Linear(self.hid_size, self.out_size)
 
 
