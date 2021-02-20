@@ -73,11 +73,10 @@ if __name__ == "__main__":
     model = FcNet(args.input_dim, args.fc_nodes, args.output_dim, args.hidden_layers)  # input, hidden, output
     model.apply(weights_init)
 
-    print(model)
     model.cuda()
     optimizer = torch.optim.Adam(model.parameters(),
-                                lr=args.learn_rate)
-    print(f"RUNNING sample-aggregate? {args.sample_aggregate}")
+                                 lr=args.learn_rate)
+    print(f"Running sample-aggregate? {args.sample_aggregate}")
     trainer = GradientTransfer(dataloader, model, optimizer, args) \
         if args.sample_aggregate else Trainer(dataloader, model, optimizer, args)
-    trainer.train()
+    trainer.train(sample_limit=2)

@@ -3,6 +3,7 @@ from opacus.layers.dp_lstm import DPLSTM
 import torch
 import torch.nn.functional as F
 
+
 class FcNet(torch.nn.Module):
     def __init__(self, D_in, H, D_out, layers):
         """
@@ -17,7 +18,6 @@ class FcNet(torch.nn.Module):
         super(FcNet, self).__init__()
         self.lstm = DPLSTM(self.in_size, self.hid_size, self.hidden_layers)
         self.linear1 = torch.nn.Linear(self.hid_size, self.out_size)
-
 
     def forward(self, x, y):
         """
@@ -37,8 +37,8 @@ class FcNet(torch.nn.Module):
     def recognize(self, x):
         lstm_out, _ = self.lstm(x.view(x.shape[1], 1, -1))
         y_pred = F.softmax(self.linear1(lstm_out.view(x.shape[1], -1)), dim=1)
-        #_, y_pred_tags = torch.max(y_pred, dim = 1)
-        return y_pred
+        _, y_pred_tags = torch.max(y_pred, dim=1)
+        return y_pred_tags
 
     def get_acc_utt(self, y_pred, y):
         y = y.view(y.shape[1])
@@ -47,7 +47,13 @@ class FcNet(torch.nn.Module):
         #acc = torch.round(acc) * 100
         return correct_pred.sum(), len(correct_pred)
 
-
+    def score(self, batch):
+        with torch.no_grad():
+            inputs = batch['features'].cuda()
+            targets = batch['labels'].cuda()
+            pred = self.recognize(inputs)
+            accuracy = torch.sum(pred == targets) / len(pred)
+            return accuracy
 
     @staticmethod
     def serialize(model, optimizer, epoch, tr_loss=None, cv_loss=None):
