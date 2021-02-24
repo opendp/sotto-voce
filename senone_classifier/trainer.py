@@ -19,6 +19,8 @@ class Trainer(object):
 
         # Training config
         self.epochs = args.epochs
+        self.sample_limit = args.sample_limit if args.sample_limit else len(self.tr_loader)
+
         self.half_lr = args.half_lr
         self.early_stop = args.early_stop
 
@@ -54,15 +56,16 @@ class Trainer(object):
         self.halving = False
 
     def train(self):
-        for epoch in range(self.start_epoch, self.epochs):
-            print("training...")
+        print(f"Sample limit: {self.sample_limit}")
+        for i, epoch in enumerate(range(self.start_epoch, self.epochs)):
+            # print(f"Epoch: {i}")
             start = time.time()
             tr_avg_loss = self._run_one_epoch(epoch)
-            print('-'*85)
-            print('Train Summary | End of Epoch {0} | Time {1:.2f}s | '
-                  'Train Loss {2:.3f}'.format(
-                    epoch + 1, time.time() - start, tr_avg_loss))
-            print('-'*85)
+            # print('-'*85)
+            # print('Train Summary | End of Epoch {0} | Time {1:.2f}s | '
+            #       'Train Loss {2:.3f}'.format(
+            #         epoch + 1, time.time() - start, tr_avg_loss))
+            # print('-'*85)
 
             # save model after each epoch
             if self.checkpoint:
@@ -74,17 +77,17 @@ class Trainer(object):
                            file_path)
                 print('Saving checkpoint model to %s' % file_path)
 
-            print("Cross validation...")
+            # print("Cross validation...")
 
             val_loss = self._run_one_epoch(epoch, cross_valid=True)
             if self.accountant:
                 self.accountant.increment_epoch()
 
-            print('-' * 85)
-            print('Valid Summary | End of Epoch {0} | Time {1:.2f}s | '
-                  'Valid Loss {2:.3f}'.format(
-                    epoch + 1, time.time() - start, val_loss))
-            print('-' * 85)
+            # print('-' * 85)
+            # print('Valid Summary | End of Epoch {0} | Time {1:.2f}s | '
+            #       'Valid Loss {2:.3f}'.format(
+            #         epoch + 1, time.time() - start, val_loss))
+            # print('-' * 85)
 
             # learning rate halving
             if self.half_lr and val_loss >= self.prev_val_loss:
@@ -113,12 +116,7 @@ class Trainer(object):
                                                 tr_loss=self.tr_loss,
                                                 cv_loss=self.cv_loss),
                            file_path)
-                print("Find better validated model, saving to %s" % file_path)
-
-
-
-
-
+                # print("Find better validated model, saving to %s" % file_path)
 
     def _run_one_epoch(self, epoch, cross_valid=False):
         start = time.time()
@@ -140,12 +138,13 @@ class Trainer(object):
 
                 self.optimizer.step()
             total_loss += loss.item()
-            if i % self.print_freq == 0:
-                print ('Epoch {0} | Iter {1} | Average Loss {2:.3f} |'
-                        'Current Loss {3:.6f} | {4:.1f} ms/batch'.format(
-                            epoch + 1, i + 1, total_loss / (i + 1),
-                            loss.item(), 1000 * (time.time() - start) / (i + 1)),
-                        flush=True)
+            # if i % self.print_freq == 0:
+            print('Epoch {0} | Iter {1} | Average Loss {2:.3f} |'
+                  'Current Loss {3:.6f} | {4:.1f} ms/batch'.format(
+                    epoch + 1, i + 1, total_loss / (i + 1),
+                    loss.item(), 1000 * (time.time() - start) / (i + 1)), flush=True)
+            if i >= self.sample_limit:
+                break
         return total_loss / (i + 1)
 
 

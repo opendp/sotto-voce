@@ -1,8 +1,10 @@
+import time
+
 import torch
 
 from torch.utils.data import DataLoader
 
-from dp_gradient_selector import DPGradientSelector
+from dp_gradient_select import DPGradientSelector
 
 
 class GradientTransfer(object):
@@ -44,14 +46,17 @@ class GradientTransfer(object):
         """
         Run training with the gradient transfer process
         :param epoch_size: Number of epochs to train each batch
+        :param sample_limit: How many samples to train over
         :return:
         """
+        start = time.time()
         batch_size = 5
         sample_limit = sample_limit if sample_limit else len(self.train_loader)
         print(f"Train length: {sample_limit}")
+        total_loss = 0.0
+        global_index = 0
         for epoch in range(0, epoch_size):
             for i, sample in enumerate(self.train_loader):
-                print(f"Sample {i}")
                 x = sample['features'].cuda()
                 y = sample['labels'].cuda()
                 self.gradients = dict((name, []) for name, _ in self.model.named_parameters())
@@ -78,22 +83,44 @@ class GradientTransfer(object):
                 self.optimizer.zero_grad()
                 if i > sample_limit - 1:
                     break
+                loss = self.model(x, y)
+                total_loss += loss.item()
+                global_index += 1
+                print('Epoch {0} | Iter {1} | Average Loss {2:.3f} |' 
+                      'Current Loss {3:.6f} | {4:.1f} ms/batch'.format(
+                            epoch + 1, i + 1, total_loss / (i + 1),
+                            loss.item(), 1000 * (time.time() - start) / (global_index + 1)), flush=True)
 
-            accuracy = self.evaluate()
-            print(f"Epoch: {epoch: 5d} | Accuracy: {accuracy.item():.2f}")  # | Loss: {loss.item():.2f}")
+            # accuracy = self.evaluate()
+            # print(f"Epoch: {epoch: 5d} | Accuracy: {accuracy.item():.2f}")  # | Loss: {loss.item():.2f}")
 
-    def run_plain(self, epoch_size=5):
+    def run_plain(self, epoch_size=5, sample_limit=None):
         """
         For comparison, run without any gradient transfers
         :return:
         """
-        optimizer = torch.optim.Adam(model.parameters(), self.learning_rate)
-        print("Epoch | Accuracy | Loss")
+        start = time.time()
+        sample_limit = sample_limit if sample_limit else len(self.train_loader)
+        # optimizer = torch.optim.Adam(model.parameters(), self.learning_rate)
+        total_loss = 0.0
         for epoch in range(epoch_size):
-            for batch in self.train_loader:
-                loss = model.loss(batch)
+            for i, batch in enumerate(self.train_loader):
+                # print(f"Batch {i}")
+                x = batch['features'].cuda()
+                y = batch['labels'].cuda()
+                # print("Calculating Loss")
+                loss = self.model(x, y)
+                # print("Backward")
                 loss.backward()
-                optimizer.step()
-                optimizer.zero_grad()
-            accuracy, loss = evaluate(model, test_loader)
-            print(f"{epoch: 5d} | {accuracy.item():.2f}     | {loss.item():.2f}")
+                # print("Step")
+                self.optimizer.step()
+                # print("Zero Grad")
+                self.optimizer.zero_grad()
+                # print("Evaluate")
+                if i >= sample_limit:
+                    break
+                total_loss += loss.item()
+                print('Epoch {0} | Iter {1} | Average Loss {2:.3f} |' 
+                      'Current Loss {3:.6f} | {4:.1f} ms/batch'.format(
+                            epoch + 1, i + 1, total_loss / (i + 1),
+                            loss.item(), 1000 * (time.time() - start) / (i + 1)), flush=True)

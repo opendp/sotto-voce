@@ -35,6 +35,8 @@ if __name__ == "__main__":
     parser.add_argument("--learn_rate", default=1e-3, type=float)
     parser.add_argument("--momentum", default=0.95, type=float)
     parser.add_argument("--epochs", default=500, type=int)
+    parser.add_argument("--sample_limit", default=None, type=int)
+
     parser.add_argument('--half_lr', dest='half_lr', default=0, type=int,
                         help='Halving learning rate when get small improvement')
     parser.add_argument('--early_stop', dest='early_stop', default=0, type=int,
@@ -68,7 +70,7 @@ if __name__ == "__main__":
     cv_dataset = SenoneClassification(cv_file_details)
     cv_dataloader = data.DataLoader(cv_dataset, batch_size=1, shuffle=False, num_workers=50)
 
-    dataloader = {"tr_loader":tr_dataloader, "cv_loader":cv_dataloader}
+    dataloader = {"tr_loader": tr_dataloader, "cv_loader": cv_dataloader}
 
     model = FcNet(args.input_dim, args.fc_nodes, args.output_dim, args.hidden_layers)  # input, hidden, output
     model.apply(weights_init)
@@ -79,4 +81,5 @@ if __name__ == "__main__":
     print(f"Running sample-aggregate? {args.sample_aggregate}")
     trainer = GradientTransfer(dataloader, model, optimizer, args) \
         if args.sample_aggregate else Trainer(dataloader, model, optimizer, args)
-    trainer.train(sample_limit=2)
+    trainer.train() # sample_limit=None, epoch_size=10)
+    # trainer.run_plain(sample_limit=None, epoch_size=10)
