@@ -1,15 +1,9 @@
 import torch
 import torch.nn.functional as F
 
-try:
-    from opendp.smartnoise.network.layers import DPLSTM
-except ImportError as e:
-    print("Install smartnoise from the ms-external-sgd branch of this repository: https://github.com/opendifferentialprivacy/smartnoise-core-python")
-    raise e
-
 
 class FcNet(torch.nn.Module):
-    def __init__(self, D_in, H, D_out, layers, is_private=False):
+    def __init__(self, D_in, H, D_out, layers):
         """
         In the constructor we instantiate two nn.Linear modules and assign them as
         member variables.
@@ -18,10 +12,9 @@ class FcNet(torch.nn.Module):
         self.hid_size = H
         self.out_size = D_out
         self.hidden_layers = layers
-        self.is_private = is_private
 
         super(FcNet, self).__init__()
-        self.lstm = (DPLSTM if is_private else torch.nn.LSTM)(self.in_size, self.hid_size, self.hidden_layers)
+        self.lstm = torch.nn.LSTM(self.in_size, self.hid_size, self.hidden_layers)
         self.linear1 = torch.nn.Linear(self.hid_size, self.out_size)
 
 

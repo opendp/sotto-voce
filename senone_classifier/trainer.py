@@ -15,8 +15,12 @@ class Trainer(object):
         self.tr_loader = dataloader['tr_loader']
         self.cv_loader = dataloader['cv_loader']
 
-        self.accountant = PrivacyAccountant(model=self.model, step_epsilon=args.step_epsilon) if args.step_epsilon else None
-        self.coordinator = ModelCoordinator(model=self.model, **args.federation) if hasattr(args, 'federation') else None
+        self.accountant = None
+        if args.step_epsilon:
+            self.accountant = PrivacyAccountant(model=model, step_epsilon=args.step_epsilon)
+            self.model = self.accountant.model
+
+        self.coordinator = ModelCoordinator(model=model, **args.federation) if hasattr(args, 'federation') else None
 
         # Training config
         self.epochs = args.epochs

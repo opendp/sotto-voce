@@ -32,8 +32,7 @@ def run_senone_worker(args, rank=None, size=None, step_limit=None, federation_sc
         args.input_dim,  # input
         args.fc_nodes,  # hidden
         args.output_dim,  # output
-        args.hidden_layers,
-        is_private=args.step_epsilon is not None)
+        args.hidden_layers)
     model.apply(weights_init)
 
     print(model)
