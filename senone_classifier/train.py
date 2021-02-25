@@ -79,7 +79,7 @@ if __name__ == "__main__":
     optimizer = torch.optim.Adam(model.parameters(),
                                  lr=args.learn_rate)
     print(f"Running sample-aggregate? {args.sample_aggregate}")
-    trainer = GradientTransfer(dataloader, model, optimizer, args) \
+    trainer = GradientTransfer(dataloader, model, optimizer, args.epochs) \
         if args.sample_aggregate else Trainer(dataloader, model, optimizer, args)
     trainer.train() # sample_limit=None, epoch_size=10)
     # trainer.run_plain(sample_limit=None, epoch_size=10)

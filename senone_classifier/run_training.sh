@@ -55,9 +55,9 @@ python3 train.py --train_scp_dir $train_scp_dir \
  --momentum $mom \
  --epochs $ep \
  --save_folder $save_fld \
- # --checkpoint $ckpt  --model_path $mdl_path \
+ --checkpoint $ckpt  --model_path $mdl_path \
  --print_freq $pr_fr \
- --step_epsilon 0.1 \
- --epochs 10 \
-#  --sample_limit 10
+ --step_epsilon 0.1
+#  --epochs 100 \
+#  --sample_limit 10 
 #  --sample-aggregate

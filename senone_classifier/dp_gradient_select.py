@@ -120,8 +120,8 @@ class DPGradientSelector(object):
                     print(f"Iter: {i}\tCube Size: {cube_size}")
                 candidate_point = gradient + \
                     torch.Tensor(np.random.uniform(low=-cube_size/2.,
-                        high=cube_size/2.,
-                        size=tensor_size)).cpu()
+                                                   high=cube_size/2.,
+                                                   size=tensor_size)).cpu()
                 gradient_dist = torch.norm(torch.abs(gradient-candidate_point))
                 other_dists = [torch.norm(torch.abs(x.cpu()-candidate_point)) for x in self.tensor_list]
                 closer_gradients = list(filter(lambda x: x < gradient_dist, other_dists))

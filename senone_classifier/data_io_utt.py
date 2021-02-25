@@ -20,6 +20,7 @@ class SenoneClassification(data.Dataset):
         self.lab_file = file_dir['label_scp_file']
         
         self.utt_list = ins_utt_from_list(os.path.join(self.scp_dir, self.scp_file))
+        
     def __len__(self):
         return len(self.utt_list)
 
