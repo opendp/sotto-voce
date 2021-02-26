@@ -73,3 +73,15 @@ class FcNet(torch.nn.Module):
         return package
 
 
+class FcNetNonPrivate(FcNet):
+
+    def __init__(self, D_in, H, D_out, layers):
+        """
+        Using to test sample-aggregate with non-privatized layers
+        :param D_in:
+        :param H:
+        :param D_out:
+        :param layers:
+        """
+        super(FcNetNonPrivate, self).__init__(D_in, H, D_out, layers)
+        self.lstm = torch.nn.LSTM(self.in_size, self.hid_size, self.hidden_layers)

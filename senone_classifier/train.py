@@ -1,4 +1,5 @@
 import argparse
+from model import FcNet, FcNetNonPrivate
 from data_io_utt import *
 import torch.utils.data as data
 from trainer import *
@@ -72,7 +73,8 @@ if __name__ == "__main__":
 
     dataloader = {"tr_loader": tr_dataloader, "cv_loader": cv_dataloader}
 
-    model = FcNet(args.input_dim, args.fc_nodes, args.output_dim, args.hidden_layers)  # input, hidden, output
+    model = FcNetNonPrivate(args.input_dim, args.fc_nodes, args.output_dim, args.hidden_layers) \
+        if args.sample_aggregate else FcNet(args.input_dim, args.fc_nodes, args.output_dim, args.hidden_layers)  # input, hidden, output
     model.apply(weights_init)
 
     model.cuda()
