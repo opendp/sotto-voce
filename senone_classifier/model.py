@@ -25,14 +25,16 @@ class FcNet(torch.nn.Module):
         well as arbitrary operators on Tensors.
         """
         lstm_out, _ = self.lstm(x.view(x.shape[1], 1, -1))
+        lstm_out = lstm_out.view(lstm_out.shape[1], lstm_out.shape[0], -1)
+
         # swap batch axis to front
-        y_pred = F.log_softmax(self.linear1(lstm_out.view(lstm_out.shape[1], lstm_out.shape[0], -1)), dim=2)
+        y_pred = F.log_softmax(self.linear1(lstm_out), dim=2)
         y = torch.squeeze(y, 0)
-        
+
         loss = torch.nn.NLLLoss(reduction='sum')
-        y = y.long().unsqueeze(0)
+        y = y.long()
         # always have a batch size of one
-        output = loss(y_pred[0], y[0])
+        output = loss(y_pred[0], y)
         return output
 
     def recognize(self, x):

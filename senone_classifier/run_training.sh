@@ -23,7 +23,7 @@ fi
 
 input_dim=13
 output_dim=9096
-fc_nodes=20
+fc_nodes=200
 hidden_layers=2
 
 
@@ -55,5 +55,5 @@ python train.py --train_scp_dir $train_scp_dir \
  --epochs $ep \
  --save_folder $save_fld \
  --checkpoint $ckpt  --model_path $mdl_path  --print_freq $pr_fr \
- --step_epsilon 100.0 \
+ --step_epsilon 200.0 \
  --num_workers 2

@@ -141,7 +141,7 @@ class Trainer(object):
 
                 if self.federation:
                     for param in self.model.parameters():
-                        dist.all_reduce(param.data)
+                        dist.all_reduce(param.grad)
 
                 self.optimizer.step()
             total_loss += loss.item()
