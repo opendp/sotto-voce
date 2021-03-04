@@ -1,8 +1,9 @@
 import os
 import time
 import torch
+import torch.distributed as dist
 try:
-    from opendp.smartnoise.network import PrivacyAccountant, ModelCoordinator
+    from opendp.smartnoise.network import PrivacyAccountant
 except ImportError as e:
     print("Install smartnoise from the ms-external-sgd branch of this repository: https://github.com/opendifferentialprivacy/smartnoise-core-python")
     raise e
@@ -20,7 +21,7 @@ class Trainer(object):
             self.accountant = PrivacyAccountant(model=model, step_epsilon=args.step_epsilon)
             self.model = self.accountant.model
 
-        self.coordinator = ModelCoordinator(model=model, **args.federation) if hasattr(args, 'federation') else None
+        self.federation = args.federation if hasattr(args, 'federation') else {}
 
         # Training config
         self.epochs = args.epochs
@@ -60,8 +61,6 @@ class Trainer(object):
 
     def train(self):
         for epoch in range(self.start_epoch, self.epochs):
-            if self.coordinator:
-                self.coordinator.recv()
             print("training...")
             start = time.time()
             tr_avg_loss = self._run_one_epoch(epoch)
@@ -122,14 +121,6 @@ class Trainer(object):
                            file_path)
                 print("Find better validated model, saving to %s" % file_path)
 
-            if self.coordinator:
-                self.coordinator.send()
-
-
-
-
-
-
     def _run_one_epoch(self, epoch, cross_valid=False):
         start = time.time()
         total_loss = 0
@@ -137,8 +128,8 @@ class Trainer(object):
         data_loader = self.tr_loader if not cross_valid else self.cv_loader
 
         for i, sample in enumerate(data_loader):
-            x = sample['features'] # .cuda()
-            y = sample['labels'] # .cuda()
+            x = sample['features'].cuda()
+            y = sample['labels'].cuda()
             #print(x.shape)
             loss = self.model(x, y)
             if not cross_valid:
@@ -148,11 +139,15 @@ class Trainer(object):
                 if self.accountant:
                     self.accountant.privatize_grad()
 
+                if self.federation:
+                    for param in self.model.parameters():
+                        dist.all_reduce(param.data)
+
                 self.optimizer.step()
             total_loss += loss.item()
-            if i % self.print_freq == 0:
-                print ('Epoch {0} | Iter {1} | Average Loss {2:.3f} |'
-                        'Current Loss {3:.6f} | {4:.1f} ms/batch'.format(
+            if self.federation.get('rank') == 0 or (not self.federation and i % self.print_freq == 0):
+                print('Epoch {0} | Iter {1} | Average Loss {2:.3f} |'
+                        ' Current Loss {3:.6f} | {4:.1f} ms/batch'.format(
                             epoch + 1, i + 1, total_loss / (i + 1),
                             loss.item(), 1000 * (time.time() - start) / (i + 1)),
                         flush=True)

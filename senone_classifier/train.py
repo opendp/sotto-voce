@@ -5,8 +5,6 @@ from multiprocessing import Event
 from multiprocessing.context import Process
 from queue import Queue
 
-import torch.distributed as dist
-
 from data_io_utt import *
 from trainer import *
 
@@ -37,7 +35,7 @@ def run_senone_worker(args, rank=None, size=None, step_limit=None, federation_sc
 
     print(model)
 
-    if rank:
+    if rank is not None:
         args.federation = {
             'rank': rank,
             'size': size,
@@ -45,7 +43,7 @@ def run_senone_worker(args, rank=None, size=None, step_limit=None, federation_sc
             'step_limit': step_limit,
             'end_event': end_event
         }
-    # model.cuda()
+    model.cuda()
     optimizer = torch.optim.Adam(model.parameters(),
                                  lr=args.learn_rate)
 

@@ -1,16 +1,29 @@
 #!/bin/bash
 
-train_scp_dir="/Users/michael/whitenoise/sotto-voce-corpus/senone_labels"
-train_scp_file="/Users/michael/whitenoise/sotto-voce-corpus/libri_inp_data/train_full_nodup_tr90/feats.scp"
-train_label_scp_file="/Users/michael/whitenoise/sotto-voce-corpus/libri_inp_data/train_full_nodup_tr90/phone.ctm2.scp"
+azure=1
 
-cv_scp_dir="/Users/michael/whitenoise/sotto-voce-corpus/senone_labels"
-cv_scp_file="/Users/michael/whitenoise/sotto-voce-corpus/libri_inp_data/train_full_nodup_cv10/feats.scp"
-cv_label_scp_file="/Users/michael/whitenoise/sotto-voce-corpus/libri_inp_data/train_full_nodup_cv10/phone.ctm2.scp"
+if [ $azure -eq 1 ]
+then
+    train_scp_dir="/data/sotto-voce/senone_classifier/"
+    train_scp_file="train_full_nodup_tr90/feats.scp"
+    train_label_scp_file="train_full_nodup_tr90/phone.ctm2.scp"
+
+    cv_scp_dir="/data/sotto-voce/senone_classifier/"
+    cv_scp_file="train_full_nodup_cv10/feats.scp"
+    cv_label_scp_file="train_full_nodup_cv10/phone.ctm2.scp"
+else
+    train_scp_dir="/Users/michael/whitenoise/sotto-voce-corpus/senone_labels"
+    train_scp_file="/Users/michael/whitenoise/sotto-voce-corpus/libri_inp_data/train_full_nodup_tr90/feats.scp"
+    train_label_scp_file="/Users/michael/whitenoise/sotto-voce-corpus/libri_inp_data/train_full_nodup_tr90/phone.ctm2.scp"
+
+    cv_scp_dir="/Users/michael/whitenoise/sotto-voce-corpus/senone_labels"
+    cv_scp_file="/Users/michael/whitenoise/sotto-voce-corpus/libri_inp_data/train_full_nodup_cv10/feats.scp"
+    cv_label_scp_file="/Users/michael/whitenoise/sotto-voce-corpus/libri_inp_data/train_full_nodup_cv10/phone.ctm2.scp"
+fi
 
 input_dim=13
 output_dim=9096
-fc_nodes=200
+fc_nodes=20
 hidden_layers=2
 
 
@@ -27,7 +40,6 @@ mdl_path="final.pth.tar"
 
 pr_fr=1000
 
-workon smartnoise
 python train.py --train_scp_dir $train_scp_dir \
  --train_scp_file $train_scp_file \
  --train_label_scp_file $train_label_scp_file \
@@ -43,4 +55,5 @@ python train.py --train_scp_dir $train_scp_dir \
  --epochs $ep \
  --save_folder $save_fld \
  --checkpoint $ckpt  --model_path $mdl_path  --print_freq $pr_fr \
- --step_epsilon 1.0
+ --step_epsilon 100.0 \
+ --num_workers 2
