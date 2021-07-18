@@ -2,7 +2,8 @@ import os
 import time
 import torch
 try:
-    # from opendp.network.odometer_stochastic import StochasticPrivacyOdometer
+    from opendp.network.odometer import PrivacyOdometer
+    from opendp.network.odometer_stochastic import StochasticPrivacyOdometer
     from opendp.network.odometer_manual import ManualPrivacyOdometer
 except ImportError as e:
     print("Install smartnoise from the ms-external-sgd branch of this repository: https://github.com/opendifferentialprivacy/smartnoise-core-python")
@@ -18,8 +19,16 @@ class Trainer(object):
 
         self.accountant = None
         if args.step_epsilon:
-            self.odometer = ManualPrivacyOdometer(model=self.model, step_epsilon=args.step_epsilon)
+            # full grad reconstruction odometer
+            self.odometer = PrivacyOdometer(step_epsilon=args.step_epsilon)
+            self.model = self.odometer.make_tracked_view(self.model)
+
+            # # stochastic odometer
+            # self.odometer = StochasticPrivacyOdometer(step_epsilon=args.step_epsilon)
             # self.odometer.track_(self.model)
+
+            # # manual odometer
+            # self.odometer = ManualPrivacyOdometer(model=self.model, step_epsilon=args.step_epsilon)
 
         self.federation = args.federation if hasattr(args, 'federation') else {}
 
@@ -136,7 +145,8 @@ class Trainer(object):
                 self.optimizer.zero_grad()
                 loss.backward()
 
-                self.odometer.privatize_grad()
+                # enable only for ManualPrivacyOdometer
+                # self.odometer.privatize_grad()
                 self.optimizer.step()
             total_loss += loss.item()
             if self.federation.get('rank') == 0 or (not self.federation and i % self.print_freq == 0):

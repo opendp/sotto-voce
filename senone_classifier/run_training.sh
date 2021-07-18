@@ -56,4 +56,4 @@ python train.py --train_scp_dir $train_scp_dir \
  --save_folder $save_fld \
  --checkpoint $ckpt  --model_path $mdl_path  --print_freq $pr_fr \
  --step_epsilon 100.0 \
- --num_workers 4 | tee output.log
+ --num_workers 2 | tee output.log
