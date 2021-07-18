@@ -38,7 +38,7 @@ ckpt=0
 cont_model=0
 mdl_path="final.pth.tar"
 
-pr_fr=1000
+pr_fr=1
 
 python train.py --train_scp_dir $train_scp_dir \
  --train_scp_file $train_scp_file \
@@ -55,5 +55,5 @@ python train.py --train_scp_dir $train_scp_dir \
  --epochs $ep \
  --save_folder $save_fld \
  --checkpoint $ckpt  --model_path $mdl_path  --print_freq $pr_fr \
- --step_epsilon 200.0 \
- --num_workers 2
+ --step_epsilon 100.0 \
+ --num_workers 4 | tee output.log

@@ -1,9 +1,9 @@
 import os
 import time
 import torch
-import torch.distributed as dist
 try:
-    from opendp.smartnoise.network import PrivacyAccountant
+    # from opendp.network.odometer_stochastic import StochasticPrivacyOdometer
+    from opendp.network.odometer_manual import ManualPrivacyOdometer
 except ImportError as e:
     print("Install smartnoise from the ms-external-sgd branch of this repository: https://github.com/opendifferentialprivacy/smartnoise-core-python")
     raise e
@@ -18,8 +18,8 @@ class Trainer(object):
 
         self.accountant = None
         if args.step_epsilon:
-            self.accountant = PrivacyAccountant(model=model, step_epsilon=args.step_epsilon)
-            self.model = self.accountant.model
+            self.odometer = ManualPrivacyOdometer(model=self.model, step_epsilon=args.step_epsilon)
+            # self.odometer.track_(self.model)
 
         self.federation = args.federation if hasattr(args, 'federation') else {}
 
@@ -83,8 +83,8 @@ class Trainer(object):
             print("Cross validation...")
 
             val_loss = self._run_one_epoch(epoch, cross_valid=True)
-            if self.accountant:
-                self.accountant.increment_epoch()
+            if self.odometer:
+                self.odometer.increment_epoch()
 
             print('-' * 85)
             print('Valid Summary | End of Epoch {0} | Time {1:.2f}s | '
@@ -136,13 +136,7 @@ class Trainer(object):
                 self.optimizer.zero_grad()
                 loss.backward()
 
-                if self.accountant:
-                    self.accountant.privatize_grad()
-
-                if self.federation:
-                    for param in self.model.parameters():
-                        dist.all_reduce(param.grad)
-
+                self.odometer.privatize_grad()
                 self.optimizer.step()
             total_loss += loss.item()
             if self.federation.get('rank') == 0 or (not self.federation and i % self.print_freq == 0):

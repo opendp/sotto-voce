@@ -87,7 +87,7 @@ if [ ${stage} -le 2 ]; then
   # utils/combine_data.sh --extra-files utt2num_frames $data_dir/${valid_set} $data_dir/dev_clean $data_dir/dev_other
   utils/combine_data.sh --extra-files utt2num_frames $data_dir/${valid_set} $data_dir/dev_clean
 
-  # compute global CMVN
+  # compute global CMVN - "potential issue here - mean variance normalization"
   compute-cmvn-stats scp:$data_dir/${train_set}/feats.scp $data_dir/${train_set}/cmvn.ark
 
   # dump features for training
@@ -118,8 +118,8 @@ lmdatadir=$data_dir/lm_text
 if [ ${stage} -le 3 ]; then
   echo "Stage 3: Dictionary Preparation and Text Tokenization"
   mkdir -p $data_dir/lang
-  cut -f 2- -d" " $data_dir/${train_set}/text > $data_dir/lang/input
-  echo "$0: training sentencepiece model..."
+  cut -f 2- -d" " $data_dir/${train_set}/text > $data_dir/lang/input # Option 1: character level, Option 2: share data, create mixed model, Option 3: create 3 sentencepiece models
+  echo "$0: training sentencepiece model..." # works on text side, takes transcripts and breaks into segments. segments are the outermost layer of model
   python3 ../../scripts/spm_train.py --bos_id=-1 --pad_id=0 --eos_id=1 --unk_id=2 --input=$data_dir/lang/input \
     --vocab_size=$((sentencepiece_vocabsize+3)) --character_coverage=1.0 \
     --model_type=$sentencepiece_type --model_prefix=$sentencepiece_model \
@@ -145,7 +145,7 @@ if [ ${stage} -le 3 ]; then
     token_text=$data_dir/$dataset/token_text
     cut -f 2- -d" " $token_text > $lmdatadir/$dataset.tokens
   done
-  if [ ! -e $lmdatadir/librispeech-lm-norm.txt.gz ]; then
+  if [ ! -e $lmdatadir/librispeech-lm-norm.txt.gz ]; then # considered public, AMI is private data
     wget http://www.openslr.org/resources/11/librispeech-lm-norm.txt.gz -P $lmdatadir
   fi
   echo "$0: preparing extra corpus for subword LM training..."
@@ -159,7 +159,7 @@ lmdict=$dict
 if $lm_shallow_fusion; then
  if [ ${stage} -le 4 ]; then
   echo "Stage 4: Text Binarization for subword LM Training"
-  mkdir -p $lmdatadir/log
+  mkdir -p $lmdatadir/log #  unknown
   for dataset in $test_set; do test_paths="$test_paths $lmdatadir/$dataset.tokens"; done
   test_paths=$(echo $test_paths | awk '{$1=$1;print}' | tr ' ' ',')
   ${decode_cmd} $lmdatadir/log/preprocess.log \

@@ -4,6 +4,8 @@ import traceback
 from multiprocessing import Event
 from multiprocessing.context import Process
 from queue import Queue
+from torch.nn.parallel import DistributedDataParallel as DDP
+from torch import distributed as dist
 
 from data_io_utt import *
 from trainer import *
@@ -17,12 +19,12 @@ def run_senone_worker(args, rank=None, size=None, step_limit=None, federation_sc
     tr_file_details = {'scp_dir': args.train_scp_dir, 'scp_file': args.train_scp_file_name,
                        'label_scp_file': args.train_label_scp_file}
     tr_dataset = SenoneClassification(tr_file_details)
-    tr_dataloader = data.DataLoader(tr_dataset, batch_size=1, shuffle=True, num_workers=50)
+    tr_dataloader = data.DataLoader(tr_dataset, batch_size=1, shuffle=True, num_workers=2)
 
     cv_file_details = {'scp_dir': args.cv_scp_dir, 'scp_file': args.cv_scp_file_name,
                        'label_scp_file': args.cv_label_scp_file}
     cv_dataset = SenoneClassification(cv_file_details)
-    cv_dataloader = data.DataLoader(cv_dataset, batch_size=1, shuffle=False, num_workers=50)
+    cv_dataloader = data.DataLoader(cv_dataset, batch_size=1, shuffle=False, num_workers=2)
 
     dataloader = {"tr_loader": tr_dataloader, "cv_loader": cv_dataloader}
 
@@ -36,6 +38,8 @@ def run_senone_worker(args, rank=None, size=None, step_limit=None, federation_sc
     print(model)
 
     if rank is not None:
+        print('federating on rank', rank)
+        model = DDP(model)
         args.federation = {
             'rank': rank,
             'size': size,
