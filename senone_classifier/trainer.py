@@ -1,6 +1,13 @@
 import os
 import time
 import torch
+try:
+    from opendp.network.odometer import PrivacyOdometer
+    from opendp.network.odometer_stochastic import StochasticPrivacyOdometer
+    from opendp.network.odometer_manual import ManualPrivacyOdometer
+except ImportError as e:
+    print("Install smartnoise from the ms-external-sgd branch of this repository: https://github.com/opendifferentialprivacy/smartnoise-core-python")
+    raise e
 
 
 class Trainer(object):
@@ -9,6 +16,21 @@ class Trainer(object):
         self.optimizer = optimizer
         self.tr_loader = dataloader['tr_loader']
         self.cv_loader = dataloader['cv_loader']
+
+        self.accountant = None
+        if args.step_epsilon:
+            # full grad reconstruction odometer
+            self.odometer = PrivacyOdometer(step_epsilon=args.step_epsilon)
+            self.model = self.odometer.make_tracked_view(self.model)
+
+            # # stochastic odometer
+            # self.odometer = StochasticPrivacyOdometer(step_epsilon=args.step_epsilon)
+            # self.odometer.track_(self.model)
+
+            # # manual odometer
+            # self.odometer = ManualPrivacyOdometer(model=self.model, step_epsilon=args.step_epsilon)
+
+        self.federation = args.federation if hasattr(args, 'federation') else {}
 
         # Training config
         self.epochs = args.epochs
@@ -68,7 +90,11 @@ class Trainer(object):
                 print('Saving checkpoint model to %s' % file_path)
 
             print("Cross validation...")
+
             val_loss = self._run_one_epoch(epoch, cross_valid=True)
+            if self.odometer:
+                self.odometer.increment_epoch()
+
             print('-' * 85)
             print('Valid Summary | End of Epoch {0} | Time {1:.2f}s | '
                   'Valid Loss {2:.3f}'.format(
@@ -104,11 +130,6 @@ class Trainer(object):
                            file_path)
                 print("Find better validated model, saving to %s" % file_path)
 
-
-
-
-
-
     def _run_one_epoch(self, epoch, cross_valid=False):
         start = time.time()
         total_loss = 0
@@ -123,11 +144,14 @@ class Trainer(object):
             if not cross_valid:
                 self.optimizer.zero_grad()
                 loss.backward()
+
+                # enable only for ManualPrivacyOdometer
+                # self.odometer.privatize_grad()
                 self.optimizer.step()
             total_loss += loss.item()
-            if i % self.print_freq == 0:
-                print ('Epoch {0} | Iter {1} | Average Loss {2:.3f} |'
-                        'Current Loss {3:.6f} | {4:.1f} ms/batch'.format(
+            if self.federation.get('rank') == 0 or (not self.federation and i % self.print_freq == 0):
+                print('Epoch {0} | Iter {1} | Average Loss {2:.3f} |'
+                        ' Current Loss {3:.6f} | {4:.1f} ms/batch'.format(
                             epoch + 1, i + 1, total_loss / (i + 1),
                             loss.item(), 1000 * (time.time() - start) / (i + 1)),
                         flush=True)
