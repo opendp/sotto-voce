@@ -1,9 +1,11 @@
 #!/bin/bash
 
+# Change this path to match the location of the unpacked corpora in the target environment
 train_scp_dir="/nfs/raid83/u13/caml/users/pmuthuku_ad/CSL_exps/exps/senone_classifier/sotto-voce-corpus"
 train_scp_file="train_full_nodup_tr90/feats.scp"
 train_label_scp_file="train_full_nodup_tr90/phone.ctm2.scp"
 
+# Change this path to match the location of the unpacked corpora in the target environment
 cv_scp_dir="/nfs/raid83/u13/caml/users/pmuthuku_ad/CSL_exps/exps/senone_classifier/sotto-voce-corpus"
 cv_scp_file="train_full_nodup_cv10/feats.scp"
 cv_label_scp_file="train_full_nodup_cv10/phone.ctm2.scp"

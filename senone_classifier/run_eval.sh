@@ -1,9 +1,11 @@
 #!/bin/bash
 
+# Change this path to match the location of the unpacked corpora in the target environment
+eval_scp_path='/nfs/raid83/u13/caml/users/pmuthuku_ad/CSL_exps/exps/senone_classifier/sotto-voce-corpus'
+
 model_path='exp/temp_2X200/final.pth.tar'
 eval_scp_file_name='train_full_nodup_cv10/feats.scp'
 eval_label_scp_file_name='train_full_nodup_cv10/phone.ctm2.scp' 
-eval_scp_path='/nfs/raid83/u13/caml/users/pmuthuku_ad/CSL_exps/exps/senone_classifier/sotto-voce-corpus'
 
 input_dim=13
 output_dim=9096
