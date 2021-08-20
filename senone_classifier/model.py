@@ -35,15 +35,13 @@ class FcNet(torch.nn.Module):
     def recognize(self, x):
         lstm_out, _ = self.lstm(x.view(x.shape[1], 1, -1))
         y_pred = F.softmax(self.linear1(lstm_out.view(x.shape[1], -1)), dim=1)
-        #_, y_pred_tags = torch.max(y_pred, dim = 1)
-        return y_pred
+        _, y_pred_tags = torch.max(y_pred, dim = 1)
+        return y_pred, y_pred_tags
 
     def get_acc_utt(self, y_pred, y):
         y = y.view(y.shape[1])
         correct_pred = (y_pred == y).float()
-        #acc = correct_pred.sum() / len(correct_pred)
-        #acc = torch.round(acc) * 100
-        return correct_pred.sum(), len(correct_pred)
+        return float(correct_pred.sum() / len(correct_pred))
 
 
 

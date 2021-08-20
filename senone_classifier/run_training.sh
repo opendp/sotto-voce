@@ -1,10 +1,12 @@
 #!/bin/bash
 
-train_scp_dir="/nfs/mercury-13/u123/dbagchi/ASR_utt"
+# Change this path to match the location of the unpacked corpora in the target environment
+train_scp_dir="/nfs/raid83/u13/caml/users/pmuthuku_ad/CSL_exps/exps/senone_classifier/sotto-voce-corpus"
 train_scp_file="train_full_nodup_tr90/feats.scp"
 train_label_scp_file="train_full_nodup_tr90/phone.ctm2.scp"
 
-cv_scp_dir="/nfs/mercury-13/u123/dbagchi/ASR_utt"
+# Change this path to match the location of the unpacked corpora in the target environment
+cv_scp_dir="/nfs/raid83/u13/caml/users/pmuthuku_ad/CSL_exps/exps/senone_classifier/sotto-voce-corpus"
 cv_scp_file="train_full_nodup_cv10/feats.scp"
 cv_label_scp_file="train_full_nodup_cv10/phone.ctm2.scp"
 
@@ -27,7 +29,7 @@ mdl_path="final.pth.tar"
 
 pr_fr=1000
 
-/nfs/mercury-13/u123/dbagchi/anaconda3/envs/pytorch_gpu_deblin/bin/python train.py --train_scp_dir $train_scp_dir \
+python train.py --train_scp_dir $train_scp_dir \
  --train_scp_file $train_scp_file \
  --train_label_scp_file $train_label_scp_file \
  --cv_scp_dir $cv_scp_dir \
